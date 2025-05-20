@@ -1,10 +1,10 @@
+"""Скрипт для автоматизации установки виртуальной среды и зависимостей для Windows."""
 import subprocess
 import sys
-import os
-import shutil
 
 
 def check_anaconda():
+    """Проверяет наличие Anaconda в системе."""
     try:
         result = subprocess.run(['conda', '--version'],
                                 capture_output=True, text=True, check=True)
@@ -16,6 +16,7 @@ def check_anaconda():
 
 
 def create_virtual_env():
+    """Создает виртуальную среду satellite_tracker."""
     env_name = "satellite_tracker"
     try:
         print(f"Создание виртуальной среды {env_name}...")
@@ -29,45 +30,35 @@ def create_virtual_env():
 
 
 def install_dependencies():
+    """Устанавливает зависимости в виртуальную среду."""
     env_name = "satellite_tracker"
-    dependencies = [
-        "pandas",
-        "numpy",
-        "matplotlib"
-    ]
-    pip_dependencies = [
-        "visual",
-        "pyorbital"
-    ]
+    conda_dependencies = ["pandas", "numpy",
+                          "matplotlib", "pyqt", "requests", "cartopy"]
+    pip_dependencies = ["vpython", "pyorbital"]
 
     try:
-        conda_path = shutil.which('conda')
-        if not conda_path:
-            raise FileNotFoundError("Conda не найдена в PATH.")
-
-        print("Установка зависимостей через conda...")
-        for dep in dependencies:
-            subprocess.run([conda_path, 'install', '-n',
-                           env_name, dep, '-y'], check=True)
+        print("Установка зависимостей через conda с канала conda-forge...")
+        for dep in conda_dependencies:
+            subprocess.run(['conda', 'install', '-n', env_name,
+                           '-c', 'conda-forge', dep, '-y'], check=True)
             print(f"Установлен {dep}.")
 
-        print("Установка зависимостей через pip...")
-        python_path = os.path.join(os.path.dirname(
-            conda_path), '..', 'envs', env_name, 'python.exe')
+        print("Установка зависимостей через pip в виртуальной среде...")
         for dep in pip_dependencies:
-            subprocess.run([python_path, '-m', 'pip',
-                           'install', dep], check=True)
+            subprocess.run(['conda', 'run', '-n', env_name,
+                           'pip', 'install', dep], check=True)
             print(f"Установлен {dep}.")
 
         print("Все зависимости успешно установлены.")
         return True
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+    except subprocess.CalledProcessError as e:
         print(f"Ошибка при установке зависимостей: {e}")
         return False
 
 
 def main():
-    print("Запуск установки для приложения трекинга спутников...")
+    """Основная функция для выполнения установки."""
+    print("Запуск установки для приложения трекинга спутников (целевая платформа: Windows)...")
 
     if not check_anaconda():
         sys.exit(1)
@@ -79,8 +70,8 @@ def main():
         sys.exit(1)
 
     print("Установка завершена успешно!")
-    print("Для активации среды выполните: conda activate satellite_tracker")
-    print("Проверьте установку, запустив: python -c \"import pandas, numpy, matplotlib, visual, pyorbital\"")
+    print("Для активации среды на Windows выполните: conda activate satellite_tracker")
+    print("Проверьте установку, запустив: python -c \"import pandas, numpy, matplotlib, vpython, pyorbital, PyQt5, cartopy\"")
 
 
 if __name__ == "__main__":
