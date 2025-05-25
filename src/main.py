@@ -1,10 +1,19 @@
 """Основной модуль для запуска GUI приложения трекинга спутников."""
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QComboBox, QLineEdit, QPushButton, QLabel
-from PyQt5.QtCore import Qt
-from src.visualization import plot_2d_trajectory, plot_3d_orbit, get_dummy_trajectory
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QComboBox, QLineEdit, QPushButton, QLabel
+from PySide6.QtCore import Qt
+from visualization import plot_2d_trajectory, plot_3d_orbit, get_dummy_trajectory
+from datetime import datetime, timedelta
 import configparser
 import sys
 
+from satellite_position import Satellite
+'''MERIDIAN-4
+1 37398U 11018A   25078.69307982 -.00000464  00000-0  00000+0 0  9991
+2 37398  62.1504 146.3299 7311923 260.0888  18.0830  2.00652128101651'''
+
+
+tle1 = '1 40296U 14069A   25143.36398969  .00000184  00000-0  00000-0 0  9992'
+tle2 = '2 40296  63.4869 255.6893 6837698 272.5525  17.3585  2.00611251 77418'
 
 class SatelliteTrackerApp(QMainWindow):
     """Главное окно приложения трекинга спутников."""
@@ -55,16 +64,22 @@ class SatelliteTrackerApp(QMainWindow):
         self.plot_3d_button.clicked.connect(self.show_3d_plot)
         self.layout.addWidget(self.plot_3d_button)
 
+        self.plot_2d_button.setStyleSheet("background-color: lightblue; color: black;")
+        self.plot_3d_button.setStyleSheet("background-color: lightgreen; color: black;")
+
+        self.satellite_label.setStyleSheet("background-color: lightgreen; color: black;")
+        self.satellite_label.setStyleSheet("background-color: lightgreen; color: black;")
+
         # Применение стилей из config.ini
         font_size = self.config["Style"]["font_size"]
         background = self.config["Style"]["background"]
         self.central_widget.setStyleSheet(
-            f"background-color: {background}; font-size: {font_size}px;"
+            f"background-color: {background}; font-size: {font_size}px; color: black;"
         )
 
         # Поддержка управления мышью
         self.setWindowFlags(
-            Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
+           Qt.WindowType.Window)
         self.setMinimumSize(300, 300)
 
     def show_2d_plot(self):
@@ -72,10 +87,24 @@ class SatelliteTrackerApp(QMainWindow):
         try:
             lat = float(self.lat_input.text())
             lon = float(self.lon_input.text())
-            satellite = self.satellite_combo.currentText()
-            # Тестовые данные (заменить на реальные из satellite_position.py)
-            lons, lats, _ = get_dummy_trajectory()
-            plot_2d_trajectory(lons, lats, satellite, lon, lat)
+
+            satellite = Satellite(
+                    sat_name=self.satellite_combo.currentText(),
+                    tle1=tle1,
+                    tle2=tle2
+            )
+
+            timestamp = datetime.utcnow()
+            delt=timedelta(minutes=1)
+            lons = []
+            lats = []
+            for i in range(6*24):
+                cords = satellite.calculate_satellite_position(timestamp)
+                lons.append(cords['longitude'])
+                lats.append(cords['latitude'])
+                timestamp+=delt
+
+            plot_2d_trajectory(lons, lats, satellite.name, lon, lat)
             # Обновление информации о местоположении
             self.position_label.setText(
                 f"Текущие координаты: ({lons[-1]:.2f}, {lats[-1]:.2f})")
@@ -84,11 +113,21 @@ class SatelliteTrackerApp(QMainWindow):
 
     def show_3d_plot(self):
         """Отображает 3D-орбит спутника."""
-        satellite = self.satellite_combo.currentText()
-        # Тестовые данные (заменить на реальные из satellite_position.py)
-        _, _, positions = get_dummy_trajectory()
-        plot_3d_orbit(positions, satellite)
+        satellite = Satellite(
+                    sat_name=self.satellite_combo.currentText(),
+                    tle1=tle1,
+                    tle2=tle2
+        )
+        # Тестовые данные (заменить на реальные из satellite_position.py
+        timestamp = datetime.utcnow()
+        delt=timedelta(minutes=1)
+        pos = []
+        for i in range(6*24):
+            cords = satellite.calculate_satellite_position(timestamp)
+            pos.append(cords['earth_mj2000'])
+            timestamp+=delt
 
+        plot_3d_orbit(pos, satellite.name)
 
 def main():
     """Запускает приложение."""
@@ -96,7 +135,6 @@ def main():
     window = SatelliteTrackerApp()
     window.show()
     sys.exit(app.exec_())
-
 
 if __name__ == "__main__":
     main()

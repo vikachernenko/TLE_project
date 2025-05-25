@@ -1,6 +1,6 @@
-import numpy as np
 from pyorbital.orbital import Orbital
-from datetime import datetime, timedelta
+from vpython import vector
+#from datetime import datetime, timedelta
 
 class Satellite:
     def __init__(self, sat_name, tle1, tle2 ):
@@ -24,12 +24,12 @@ class Satellite:
         :return: Словарь с координатами спутника
         """
 
-        position, _ = self.orb.get_position(timestamp, normalize=False)
+        position = self.orb.get_position(timestamp, normalize=False)[0]
         lon, lat, alt = self.orb.get_lonlatalt(timestamp)
         return {
-            'earth_mj2000': position,
             'latitude': lat,
             'longitude': lon,
+            'earth_mj2000': position,
             'altitude': alt
         }
     

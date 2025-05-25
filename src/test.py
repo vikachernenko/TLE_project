@@ -22,6 +22,7 @@ ground_station = {
 # 1. Расчет текущей позиции спутника
 timestamp = datetime.utcnow()
 position = satellite.calculate_satellite_position(timestamp)
+print(position['earth_mj2000'])
 print(f"Текущие координаты {satellite.name}:")
 print(f"- Широта: {position['latitude']:.2f}°")
 print(f"- Долгота: {position['longitude']:.2f}°")
