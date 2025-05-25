@@ -20,7 +20,7 @@ python install.py
 
 - Проверит наличие Anaconda.
 - Создаст виртуальную среду `satellite_tracker` с Python 3.8.
-- Установит библиотеки: `pandas`, `numpy`, `matplotlib`, `visual`, `pyorbital`.
+- Установит библиотеки: `pandas`, `numpy`, `matplotlib`, `visual`, `pyorbital`, `requests`, `cartopy`
 
 4. Дождитесь сообщения: `Установка завершена успешно!`
 
@@ -29,7 +29,7 @@ python install.py
 1. Активируйте виртуальную среду:
    conda activate satellite_tracker
 2. Проверьте наличие библиотек:
-   python -c "import pandas, numpy, matplotlib, visual, pyorbital; print('Все библиотеки установлены.')"
+   python -c "import pandas, numpy, matplotlib, visual, pyorbital, cartopy, requests; print('Все библиотеки установлены.')"
    Если ошибок нет, установка успешна.
 
 ## Устранение неполадок
@@ -42,10 +42,3 @@ python install.py
 - Повторите: `python install.py`.
 - **Проблемы с библиотекой `visual`**:
 - Замените `visual` на `vpython` в `install.py`, если не устанавливается.
-- Обратитесь к руководителю проекта для поддержки.
-
-## Примечания
-
-- Установка не изменяет системные файлы, работает в рамках Anaconda.
-- Виртуальная среда создается в `C:\Users\YourName\Anaconda3\envs\satellite_tracker`.
-- Для запуска приложения следуйте «Руководству пользователя».
