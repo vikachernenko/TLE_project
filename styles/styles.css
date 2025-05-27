@@ -1,0 +1,60 @@
+
+QTextEdit, QListWidget, QLineEdit, QComboBox,QMainWindow {
+    background-color: #202020;
+    color: #CCCCCC;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    font-family: Arial;
+    font-size: 8pt;
+}
+QWidget{
+    color: #CCCCCC;
+    font-family: Arial;
+    font-size: 9pt;
+}
+QGroupBox{
+    background-color: #202020;
+    color: #CCCCCC;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    font-family: Arial;
+    font-size: 10pt;
+    padding: 15px;
+}
+
+QScrollBar:vertical {
+    background: #303030;
+    width: 10px;
+}
+
+QScrollBar::handle:vertical {
+    background: #505050;
+    min-height: 20px;
+}
+
+QListWidget::item {
+    padding: 5px;
+    border-bottom: 1px solid #333333;
+}
+
+QComboBox::drop-down {
+    border: none;
+}
+
+QPushButton {
+    background-color: #303030;
+    color: #CCCCCC;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    font-family: Arial;
+    font-size: 10pt;
+    padding: 5px;
+}
+
+QPushButton:hover {
+    background-color: #404040;
+}
+
+QPushButton:pressed {
+    background-color: #505050;
+}

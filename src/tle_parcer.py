@@ -1,6 +1,5 @@
 """Модуль для загрузки и кэширования TLE строк спутников."""
 import requests
-import os
 import json
 from datetime import datetime, timedelta
 from pathlib import Path

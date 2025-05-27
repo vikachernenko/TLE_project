@@ -1,5 +1,4 @@
 from pyorbital.orbital import Orbital
-from vpython import vector
 import math
 # from datetime import datetime, timedelta
 

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget,
                                QListWidget, QMessageBox, QColorDialog)
 from PySide6.QtCore import QTimer, Qt
 from PySide6 import QtGui
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QPalette
 from datetime import datetime, timedelta
 import random
 from satellite_position import Satellite
@@ -16,10 +16,15 @@ from sky_view import SkyViewWidget
 from tle_parcer import (fetch_tle, search_satellites,
                        get_satellite_categories, get_all_satellites)
 
+def load_styles():
+    with open('styles/styles.css', 'r') as f:
+        return f.read()
 
 class SatelliteTracker(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.set_dark_theme()
+        #self.setStyleSheet(load_styles())
         self.setWindowTitle("Трекер спутников")
         self.setGeometry(100, 100, 1400, 920)
 
@@ -565,6 +570,82 @@ class SatelliteTracker(QMainWindow):
         # Восстанавливаем позицию скролла
         scroll_bar.setValue(scroll_position)
 
+    def set_dark_theme(self):
+        """Устанавливает тёмную тему для всего приложения"""
+        dark_palette = QPalette()
+        
+        # Базовые цвета
+        dark_palette.setColor(QPalette.Window, QColor(53, 53, 53))
+        dark_palette.setColor(QPalette.WindowText, Qt.white)
+        dark_palette.setColor(QPalette.Base, QColor(25, 25, 25))
+        dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+        dark_palette.setColor(QPalette.ToolTipBase, Qt.white)
+        dark_palette.setColor(QPalette.ToolTipText, Qt.white)
+        dark_palette.setColor(QPalette.Text, Qt.white)
+        dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
+        dark_palette.setColor(QPalette.ButtonText, Qt.white)
+        dark_palette.setColor(QPalette.BrightText, Qt.red)
+        dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+        dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+        dark_palette.setColor(QPalette.HighlightedText, Qt.black)
+        
+        # Отключаем анимации и эффекты
+        self.setStyleSheet("""
+            QToolTip { 
+                color: #ffffff; 
+                background-color: #2a82da; 
+                border: 1px solid white; 
+            }
+        """)
+
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #1e1e1e;
+                color: #ffffff;
+            }
+            QTextEdit, QListWidget, QLineEdit, QComboBox {
+                background-color: #252525;
+                color: #ffffff;
+                border: 1px solid #444;
+                border-radius: 4px;
+                padding: 5px;
+                selection-background-color: #3a3a3a;
+            }
+            QPushButton {
+                background-color: #353535;
+                color: #ffffff;
+                border: 1px solid #444;
+                border-radius: 4px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: #454545;
+            }
+            QPushButton:pressed {
+                background-color: #252525;
+            }
+            QGroupBox {
+                border: 1px solid #444;
+                border-radius: 4px;
+                margin-top: 10px;
+                padding-top: 15px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 3px;
+            }
+            QScrollBar:vertical {
+                background: #252525;
+                width: 10px;
+            }
+            QScrollBar::handle:vertical {
+                background: #454545;
+                min-height: 20px;
+            }
+        """)
+        
+        self.setPalette(dark_palette)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
