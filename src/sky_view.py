@@ -44,6 +44,7 @@ class SkyViewWidget(QtWidgets.QWidget):
                 border: none;
                 background: #1e1e1e;
                 border-radius: 5px;
+                border: 1px solid #333333;
             }
         """)
         
