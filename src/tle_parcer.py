@@ -1,163 +1,270 @@
-"""Модуль для загрузки, парсинга и хранения TLE-данных спутников."""
+"""Модуль для загрузки и кэширования TLE строк спутников."""
 import requests
-import pandas as pd
-from datetime import datetime
-from pyorbital.orbital import Orbital
 import os
+import json
+from datetime import datetime, timedelta
+from pathlib import Path
+
+CACHE_FILE = "tle_cache.json"
+CACHE_EXPIRE_HOURS = 24  # Кэширование на 24 часа
+
+# URLs для получения данных
+BASE_URL = "https://tle.ivanstanojevic.me/api/tle"
+CELESTRAK_URLS = {
+    "STATIONS": "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
+    "WEATHER": "https://celestrak.org/NORAD/elements/gp.php?GROUP=weather&FORMAT=tle",
+    "NOAA": "https://celestrak.org/NORAD/elements/gp.php?GROUP=noaa&FORMAT=tle",
+    "GOES": "https://celestrak.org/NORAD/elements/gp.php?GROUP=goes&FORMAT=tle",
+    "RESOURCE": "https://celestrak.org/NORAD/elements/gp.php?GROUP=resource&FORMAT=tle",
+    "SARSAT": "https://celestrak.org/NORAD/elements/gp.php?GROUP=sarsat&FORMAT=tle",
+    "SCIENCE": "https://celestrak.org/NORAD/elements/gp.php?GROUP=science&FORMAT=tle",
+    "EDUCATION": "https://celestrak.org/NORAD/elements/gp.php?GROUP=education&FORMAT=tle"
+}
+
+def fetch_tle(satellite_name):
+    """Возвращает TLE строки для заданного спутника с кэшированием."""
+    # Попробуем получить данные из кэша
+    cached_data = _load_from_cache()
+    if cached_data and satellite_name in cached_data:
+        return cached_data[satellite_name]
+
+    # Если нет в кэше - загружаем новые данные
+    tle_data = _fetch_all_tle()
+    if not tle_data:
+        raise ValueError("Не удалось загрузить данные о спутниках")
+
+    # Ищем нужный спутник
+    for name, lines in tle_data.items():
+        if satellite_name.lower() in name.lower():
+            _save_to_cache(tle_data)
+            return lines[0], lines[1]
+
+    raise ValueError(f"Спутник '{satellite_name}' не найден!")
 
 
-def fetch_tle_data(satellite_name, source_url="http://celestrak.com/NORAD/elements/gp.php"):
-    """Загружает TLE-данные для указанного спутника с Celestrak.
+def _fetch_all_tle():
+    """Загружает все TLE данные из разных источников."""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json'
+    }
 
-    Args:
-        satellite_name (str): Название спутника (например, 'ISS (ZARYA)').
-        source_url (str): URL-адрес источника TLE-данных.
-
-    Returns:
-        tuple: Кортеж (line1, line2) с TLE-строками или None, если ошибка.
-    """
     try:
-        params = {"NAME": satellite_name, "FORMAT": "TLE"}
-        response = requests.get(source_url, params=params, timeout=10)
-        response.raise_for_status()
-        tle_lines = response.text.strip().split("\n")
-        if len(tle_lines) < 2:
-            print(f"Ошибка: TLE-данные для {satellite_name} не найдены.")
-            return None
-        return tle_lines[1], tle_lines[2]
-    except requests.RequestException as e:
-        print(f"Ошибка загрузки TLE: {e}")
-        return None
+        tle_data = {}
+        total_satellites = 0
 
+        # 1. Загружаем данные из основного API
+        page = 1
+        while page <= 10:  # Загружаем первые 10 страниц
+            try:
+                url = f"{BASE_URL}?page={page}"
+                print(f"Загрузка страницы {page} из основного API...")
+                
+                response = requests.get(url, headers=headers, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                
+                if 'member' not in data or not data['member']:
+                    break
+                    
+                for sat in data['member']:
+                    if 'name' in sat and 'line1' in sat and 'line2' in sat:
+                        name = sat['name'].strip()
+                        line1 = sat['line1'].strip()
+                        line2 = sat['line2'].strip()
+                        if len(line1) > 50 and len(line2) > 50:
+                            tle_data[name] = (line1, line2)
+                            total_satellites += 1
+                
+                print(f"Загружено {len(data['member'])} спутников со страницы {page}")
+                page += 1
+                
+            except Exception as e:
+                print(f"Ошибка при загрузке страницы {page}: {e}")
+                break
 
-def parse_tle_to_dict(line1, line2):
-    """Парсит TLE-строки в словарь с основными параметрами.
+        # 2. Загружаем данные из Celestrak по категориям
+        for category, url in CELESTRAK_URLS.items():
+            try:
+                print(f"Загрузка спутников категории {category}...")
+                response = requests.get(url, headers=headers, timeout=10)
+                response.raise_for_status()
+                lines = response.text.splitlines()
+                
+                for i in range(0, len(lines), 3):
+                    if i + 2 >= len(lines):
+                        break
+                    name = lines[i].strip()
+                    line1 = lines[i + 1].strip()
+                    line2 = lines[i + 2].strip()
+                    if name and len(line1) > 50 and len(line2) > 50:
+                        tle_data[name] = (line1, line2)
+                        total_satellites += 1
+                
+                print(f"Загружено спутников категории {category}: {len(lines)//3}")
+                
+            except Exception as e:
+                print(f"Ошибка при загрузке категории {category}: {e}")
+                continue
 
-    Args:
-        line1 (str): Первая строка TLE.
-        line2 (str): Вторая строка TLE.
-
-    Returns:
-        dict: Словарь с параметрами TLE или None, если ошибка.
-    """
-    try:
-        epoch_year = int(line1[18:20])
-        epoch_day = float(line1[20:32])
-        epoch_year = 2000 + epoch_year if epoch_year < 50 else 1900 + epoch_year
-        inclination = float(line2[8:16])
-        return {
-            "line1": line1,
-            "line2": line2,
-            "epoch_year": epoch_year,
-            "epoch_day": epoch_day,
-            "inclination": inclination
-        }
-    except (ValueError, IndexError) as e:
-        print(f"Ошибка парсинга TLE: {e}")
-        return None
-
-
-def is_tle_valid(tle_dict, max_age_days=7):
-    """Проверяет актуальность TLE по дате эпохи.
-
-    Args:
-        tle_dict (dict): Словарь с параметрами TLE.
-        max_age_days (int): Максимальный возраст TLE в днях.
-
-    Returns:
-        bool: True, если TLE актуально, иначе False.
-    """
-    try:
-        epoch_year = tle_dict["epoch_year"]
-        epoch_day = tle_dict["epoch_day"]
-        epoch_date = datetime(epoch_year, 1, 1) + \
-            pd.Timedelta(epoch_day - 1, unit="D")
-        current_date = datetime.now()
-        age = (current_date - epoch_date).days
-        return age <= max_age_days
-    except (KeyError, ValueError) as e:
-        print(f"Ошибка проверки TLE: {e}")
-        return False
-
-
-def save_tle_to_csv(satellite_name, tle_dict, csv_path="tle_database.csv"):
-    """Сохраняет TLE-данные в CSV-файл.
-
-    Args:
-        satellite_name (str): Название спутника.
-        tle_dict (dict): Словарь с параметрами TLE.
-        csv_path (str): Путь к CSV-файлу.
-    """
-    try:
-        data = {
-            "satellite_name": [satellite_name],
-            "line1": [tle_dict["line1"]],
-            "line2": [tle_dict["line2"]],
-            "epoch_year": [tle_dict["epoch_year"]],
-            "epoch_day": [tle_dict["epoch_day"]],
-            "inclination": [tle_dict["inclination"]],
-            "timestamp": [datetime.now()]
-        }
-        df = pd.DataFrame(data)
-        if os.path.exists(csv_path):
-            existing_df = pd.read_csv(csv_path)
-            existing_df = existing_df[existing_df["satellite_name"]
-                                      != satellite_name]
-            df = pd.concat([existing_df, df], ignore_index=True)
-        df.to_csv(csv_path, index=False)
-        print(f"TLE для {satellite_name} сохранены в {csv_path}.")
+        print(f"Всего загружено уникальных спутников: {total_satellites}")
+        return tle_data if tle_data else None
+            
     except Exception as e:
-        print(f"Ошибка сохранения TLE: {e}")
-
-
-def load_tle_from_csv(satellite_name, csv_path="tle_database.csv"):
-    """Загружает TLE-данные из CSV-файла.
-
-    Args:
-        satellite_name (str): Название спутника.
-        csv_path (str): Путь к CSV-файлу.
-
-    Returns:
-        dict: Словарь с TLE-данными или None, если не найдено.
-    """
-    try:
-        if not os.path.exists(csv_path):
-            print(f"CSV-файл {csv_path} не существует.")
-            return None
-        df = pd.read_csv(csv_path)
-        satellite_data = df[df["satellite_name"] == satellite_name]
-        if satellite_data.empty:
-            print(f"TLE для {satellite_name} не найдены в {csv_path}.")
-            return None
-        tle_dict = satellite_data.iloc[0].to_dict()
-        if is_tle_valid(tle_dict):
-            return tle_dict
-        print(f"TLE для {satellite_name} устарели.")
-        return None
-    except Exception as e:
-        print(f"Ошибка загрузки TLE из CSV: {e}")
+        print(f"Ошибка при загрузке TLE данных: {e}")
         return None
 
 
-def get_tle(satellite_name, csv_path="tle_database.csv"):
-    """Получает TLE-данные, сначала проверяя CSV, затем загружая из интернета.
+def get_all_satellites():
+    """Возвращает список названий всех доступных спутников."""
+    # Пробуем получить данные из кэша
+    cached_data = _load_from_cache()
+    if cached_data:
+        return sorted(list(cached_data.keys()))
 
-    Args:
-        satellite_name (str): Название спутника.
-        csv_path (str): Путь к CSV-файлу.
-
-    Returns:
-        tuple: Кортеж (line1, line2) или None, если ошибка.
-    """
-    tle_dict = load_tle_from_csv(satellite_name, csv_path)
-    if tle_dict:
-        return tle_dict["line1"], tle_dict["line2"]
-
-    tle_data = fetch_tle_data(satellite_name)
+    # Если кэш пуст - загружаем новые данные
+    tle_data = _fetch_all_tle()
     if tle_data:
-        line1, line2 = tle_data
-        tle_dict = parse_tle_to_dict(line1, line2)
-        if tle_dict and is_tle_valid(tle_dict):
-            save_tle_to_csv(satellite_name, tle_dict, csv_path)
-            return line1, line2
+        return sorted(list(tle_data.keys()))
+
+    return []
+
+
+def search_satellites(keyword):
+    """Поиск спутников по ключевому слову."""
+    satellites = get_all_satellites()
+    keyword = keyword.lower()
+    return sorted([name for name in satellites if keyword in name.lower()])
+
+
+def get_satellite_categories():
+    """Возвращает список доступных категорий спутников."""
+    return list(CELESTRAK_URLS.keys())
+
+
+def _load_from_cache():
+    """Загружает данные из кэша, если они актуальны."""
+    if not Path(CACHE_FILE).exists():
+        return None
+
+    try:
+        with open(CACHE_FILE, 'r') as f:
+            data = json.load(f)
+            cache_time = datetime.fromisoformat(data['timestamp'])
+            if (datetime.now() - cache_time) < timedelta(hours=CACHE_EXPIRE_HOURS):
+                return data['tle_data']
+    except Exception as e:
+        print(f"Ошибка чтения кэша: {e}")
     return None
+
+
+def _save_to_cache(tle_data):
+    """Сохраняет данные в кэш."""
+    try:
+        with open(CACHE_FILE, 'w') as f:
+            json.dump({
+                'timestamp': datetime.now().isoformat(),
+                'tle_data': tle_data
+            }, f)
+    except Exception as e:
+        print(f"Ошибка сохранения кэша: {e}")
+
+
+if __name__ == "__main__":
+    # Тестирование
+    print("Загрузка списка спутников...")
+    print("\nДоступные категории спутников:")
+    for category in get_satellite_categories():
+        print(f"- {category}")
+        
+    satellites = get_all_satellites()
+    print(f"\nВсего доступно спутников: {len(satellites)}")
+    
+    # Тестируем поиск
+    while True:
+        search_term = input("\nВведите часть названия спутника для поиска (или пустую строку для выхода): ")
+        if not search_term:
+            break
+            
+        results = search_satellites(search_term)
+        print(f"\nНайдено {len(results)} спутников:")
+        for i, name in enumerate(results[:10], 1):
+            print(f"{i}. {name}")
+        
+        if results:
+            try:
+                selected = int(input("\nВыберите номер спутника для получения TLE (или 0 для нового поиска): "))
+                if 0 < selected <= len(results):
+                    line1, line2 = fetch_tle(results[selected-1])
+                    print("\nTLE данные:")
+                    print(line1)
+                    print(line2)
+            except ValueError:
+                print("Некорректный ввод")
+
+# import sqlite3
+# import requests
+# import time
+# from pathlib import Path
+
+# DB_FILE = "satellites.db"
+# CACHE_TIME = 2 * 60 * 60  # 2 часа в секундах
+
+
+# def get_tle_data():
+#     # Проверяем, когда последний раз обновлялись данные
+#     last_update = 0
+#     if Path(DB_FILE).exists():
+#         conn = sqlite3.connect(DB_FILE)
+#         cursor = conn.cursor()
+#         cursor.execute("SELECT MAX(last_updated) FROM tle_data")
+#         last_update = cursor.fetchone()[0] or 0
+#         conn.close()
+
+#     # Если прошло меньше 2 часов — используем кэш
+#     if time.time() - last_update < CACHE_TIME:
+#         print("Используем кэшированные данные")
+#         return
+
+#     # Если нет — загружаем новые
+#     URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle"
+#     try:
+#         response = requests.get(URL, timeout=10)
+#         response.raise_for_status()
+#         tle_data = response.text.splitlines()
+
+#         conn = sqlite3.connect(DB_FILE)
+#         cursor = conn.cursor()
+#         cursor.execute("""
+#         CREATE TABLE IF NOT EXISTS tle_data (
+#             norad_id INTEGER PRIMARY KEY,
+#             name TEXT,
+#             line1 TEXT,
+#             line2 TEXT,
+#             last_updated INTEGER
+#         )
+#         """)
+
+#         for i in range(0, len(tle_data), 3):
+#             if i + 2 >= len(tle_data):
+#                 break
+#             name = tle_data[i].strip()
+#             line1 = tle_data[i+1]
+#             line2 = tle_data[i+2]
+#             norad_id = int(line1[2:7])  # NORAD ID из строки TLE
+
+#             cursor.execute(
+#                 "INSERT OR REPLACE INTO tle_data VALUES (?, ?, ?, ?, ?)",
+#                 (norad_id, name, line1, line2, int(time.time()))
+#             )
+
+#         conn.commit()
+#         print("Данные обновлены!")
+#     except requests.exceptions.RequestException as e:
+#         print(f"Ошибка запроса: {e}")
+#     finally:
+#         if 'conn' in locals():
+#             conn.close()
+
+
+# get_tle_data()

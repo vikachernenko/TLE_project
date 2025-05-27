@@ -1,1 +1,0 @@
-self.alt_input
