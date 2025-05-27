@@ -5,8 +5,8 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget,
 from PySide6.QtCore import QTimer
 from datetime import datetime, timedelta
 from satellite_position import Satellite
-from vis2 import Map2DWidget
-from pyvista_earth import Earth3DViewer
+from vis_2d import Map2DWidget
+from vis_3d import Earth3DViewer
 
 # Пример TLE (замените на актуальные)
 TLE1 = '1 06235U 72082A   25078.96535962 -.00000020  00000-0  16590-3 0  9999'
