@@ -1,14 +1,15 @@
 import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, 
-                              QVBoxLayout, QHBoxLayout, QComboBox, 
-                              QLineEdit, QLabel)
+                              QVBoxLayout, QHBoxLayout, QGridLayout,
+                              QComboBox, QLineEdit, QLabel, QGroupBox,
+                              QFormLayout, QTextEdit)
 from PySide6.QtCore import QTimer
 from datetime import datetime, timedelta
 from satellite_position import Satellite
-from vis_2d import Map2DWidget
-from vis_3d import Earth3DViewer
+from map_view import Map2DWidget
+from d3_view import Earth3DViewer
+from sky_view import SkyViewWidget
 
-# Пример TLE (замените на актуальные)
 TLE1 = '1 06235U 72082A   25078.96535962 -.00000020  00000-0  16590-3 0  9999'
 TLE2 = '2 06235 102.0253  87.2007 0003765 319.2629  55.2466 12.53197307398059'
 
@@ -16,51 +17,76 @@ class SatelliteTracker(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Трекер спутников")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1400, 900)
         
         # Центральный виджет
         central = QWidget()
         self.setCentralWidget(central)
-        main_layout = QVBoxLayout(central)
+        main_layout = QHBoxLayout(central)
         
-        # Панель управления
-        control_panel = QWidget()
-        control_layout = QHBoxLayout(control_panel)
+        # Левая панель - управление и информация
+        left_panel = QWidget()
+        left_layout = QVBoxLayout(left_panel)
         
-        # Элементы управления
-        control_layout.addWidget(QLabel("Спутник:"))
+        # Группа выбора спутника
+        sat_group = QGroupBox("Параметры спутника")
+        sat_layout = QFormLayout(sat_group)
+        
         self.sat_select = QComboBox()
         self.sat_select.addItems(["ISS", "Hubble", "GPS IIR-11"])
-        control_layout.addWidget(self.sat_select)
+        sat_layout.addRow("Спутник:", self.sat_select)
         
-        control_layout.addWidget(QLabel("Широта:"))
+        # Группа станции
+        station_group = QGroupBox("Наземная станция")
+        station_layout = QFormLayout(station_group)
+        
         self.lat_input = QLineEdit("55.7558")
-        control_layout.addWidget(self.lat_input)
-        
-        control_layout.addWidget(QLabel("Долгота:"))
         self.lon_input = QLineEdit("37.6173")
-        control_layout.addWidget(self.lon_input)
+        station_layout.addRow("Широта (°):", self.lat_input)
+        station_layout.addRow("Долгота (°):", self.lon_input)
         
-        main_layout.addWidget(control_panel)
+        # Информация о спутнике
+        info_group = QGroupBox("Информация о положении")
+        info_layout = QVBoxLayout(info_group)
         
-        # Графическая область
-        self.plot_area = QWidget()
-        plot_layout = QHBoxLayout(self.plot_area)
+        self.info_text = QTextEdit()
+        self.info_text.setReadOnly(True)
+        info_layout.addWidget(self.info_text)
         
-        # 2D карта
+        # Добавляем группы на левую панель
+        left_layout.addWidget(sat_group)
+        left_layout.addWidget(station_group)
+        left_layout.addWidget(info_group)
+        left_layout.addStretch()
+        
+        # Правая панель - визуализация
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+        
+        # Верхняя часть - 2D карта
         self.map_2d = Map2DWidget()
-        plot_layout.addWidget(self.map_2d, stretch=1)
+        right_layout.addWidget(self.map_2d, stretch=2)
         
-        # 3D вид
+        # Нижняя часть - 3D и SkyView
+        bottom_panel = QWidget()
+        bottom_layout = QHBoxLayout(bottom_panel)
+        
         self.earth_3d = Earth3DViewer()
-        plot_layout.addWidget(self.earth_3d, stretch=1)
+        self.sky_view = SkyViewWidget()
         
-        main_layout.addWidget(self.plot_area, stretch=1)
+        bottom_layout.addWidget(self.earth_3d, stretch=2)
+        bottom_layout.addWidget(self.sky_view, stretch=1)
+        
+        right_layout.addWidget(bottom_panel, stretch=1)
+        
+        # Добавляем панели в главный layout
+        main_layout.addWidget(left_panel, stretch=1)
+        main_layout.addWidget(right_panel, stretch=4)
         
         # Таймер для автообновления
         self.update_timer = QTimer(self)
         self.update_timer.timeout.connect(self.update_views)
-        self.update_timer.start(1000)  # Обновление каждые 5 секунд
+        self.update_timer.start(1000)  # Обновление каждую секунду
         
         # Первоначальное обновление
         self.update_views()
@@ -86,8 +112,34 @@ class SatelliteTracker(QMainWindow):
         try:
             station_lon = float(self.lon_input.text())
             station_lat = float(self.lat_input.text())
+            station_alt = 0.1  # небольшая высота над уровнем моря в км
         except ValueError:
-            station_lon, station_lat = None, None
+            station_lon, station_lat, station_alt = None, None, None
+        
+        # Рассчитываем положение спутника относительно станции
+        azimuth = None
+        elevation = None
+        passes = []
+        
+        if station_lon and station_lat:
+            # Текущее положение
+            try:
+                look = sat.get_observer_look({
+                    'lat': station_lat,
+                    'lon': station_lon,
+                    'alt': station_alt
+                }, now)
+                azimuth = look['azimuth']
+                elevation = look['elevation']
+                
+                # Обновляем информацию
+                self.update_satellite_info(sat, now, azimuth, elevation)
+            except Exception as e:
+                print(f"Ошибка расчета положения: {e}")
+                azimuth, elevation = None, None
+            
+            # Рассчитываем пролеты
+            passes = self.calculate_passes(sat, station_lat, station_lon, station_alt, now)
         
         # Обновляем 2D вид
         self.map_2d.update_plot(
@@ -96,9 +148,76 @@ class SatelliteTracker(QMainWindow):
             station_lat
         )
         
-        # Обновляем 3D вид (передаем lon, lat, alt)
+        # Обновляем 3D вид
         self.earth_3d.update_view(lons, lats, alts, sat.name, 
                                 station_lon, station_lat)
+        
+        # Обновляем SkyView
+        self.sky_view.update_plot(azimuth, elevation, passes)
+    
+    def calculate_passes(self, sat, station_lat, station_lon, station_alt, now):
+        """Рассчитывает пролеты спутника над станцией"""
+        passes = []
+        try:
+            contacts = sat.get_contacts_times({
+                'lat': station_lat,
+                'lon': station_lon,
+                'alt': station_alt
+            }, now, 2)  # Рассматриваем 2 дня
+            
+            for contact in contacts:
+                pass_data = {'azimuths': [], 'elevations': []}
+                duration = (contact[1] - contact[0]).total_seconds()
+                time_step = timedelta(seconds=duration/100)
+                current_time = contact[0]
+                
+                while current_time <= contact[1]:
+                    try:
+                        pos = sat.get_observer_look({
+                            'lat': station_lat,
+                            'lon': station_lon,
+                            'alt': station_alt
+                        }, current_time)
+                        # Добавляем только если спутник над горизонтом
+                        if pos['elevation'] > 0:
+                            pass_data['azimuths'].append(pos['azimuth'])
+                            pass_data['elevations'].append(pos['elevation'])
+                    except:
+                        pass
+                    current_time += time_step
+                
+                # Добавляем точки до и после пролета для плавного отображения
+                if pass_data['azimuths']:
+                    # Точка входа (понижаемся до 0°)
+                    pass_data['azimuths'].insert(0, pass_data['azimuths'][0])
+                    pass_data['elevations'].insert(0, 0)
+                    
+                    # Точка выхода (понижаемся до 0°)
+                    pass_data['azimuths'].append(pass_data['azimuths'][-1])
+                    pass_data['elevations'].append(0)
+                    
+                    passes.append(pass_data)
+        except Exception as e:
+            print(f"Ошибка расчета пролетов: {e}")
+        
+        return passes
+    
+    def update_satellite_info(self, sat, time, azimuth, elevation):
+        """Обновляет информацию о спутнике"""
+        info = f"Спутник: {sat.name}\n"
+        info += f"Время: {time.strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n"
+        
+        if azimuth is not None and elevation is not None:
+            info += "Текущее положение относительно станции:\n"
+            info += f"Азимут: {azimuth:.1f}°\n"
+            info += f"Угол места: {elevation:.1f}°\n"
+            
+            if elevation > 0:
+                info += "Статус: Виден\n"
+            else:
+                info += "Статус: За горизонтом\n"
+        
+        self.info_text.setPlainText(info)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
