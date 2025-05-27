@@ -42,8 +42,10 @@ class SatelliteTracker(QMainWindow):
         
         self.lat_input = QLineEdit("55.7558")
         self.lon_input = QLineEdit("37.6173")
+        self.alt_input = QLineEdit("0.1")
         station_layout.addRow("Широта (°):", self.lat_input)
         station_layout.addRow("Долгота (°):", self.lon_input)
+        station_layout.addRow("Высота (км):", self.alt_input)
         
         # Информация о спутнике
         info_group = QGroupBox("Информация о положении")
@@ -56,7 +58,7 @@ class SatelliteTracker(QMainWindow):
         # Добавляем группы на левую панель
         left_layout.addWidget(sat_group)
         left_layout.addWidget(station_group)
-        left_layout.addWidget(info_group)
+        left_layout.addWidget(info_group, stretch=2)
         left_layout.addStretch()
         
         # Правая панель - визуализация
@@ -112,7 +114,7 @@ class SatelliteTracker(QMainWindow):
         try:
             station_lon = float(self.lon_input.text())
             station_lat = float(self.lat_input.text())
-            station_alt = 0.1  # небольшая высота над уровнем моря в км
+            station_alt = float(self.alt_input.text())  # небольшая высота над уровнем моря в км
         except ValueError:
             station_lon, station_lat, station_alt = None, None, None
         
@@ -204,20 +206,69 @@ class SatelliteTracker(QMainWindow):
     
     def update_satellite_info(self, sat, time, azimuth, elevation):
         """Обновляет информацию о спутнике"""
-        info = f"Спутник: {sat.name}\n"
+        info = f"=== Спутник: {sat.name} ===\n"
         info += f"Время: {time.strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n"
         
+        try:
+            info += "Параметры орбиты:\n"
+            info += (f"Наклонение: {float(TLE2[8:16]):.2f}°\n")
+            info += (f"RAAN: {float(TLE2[17:25]):.2f}°\n")
+            info += (f"Аргумент перицентра: {float(TLE2[34:42]):.2f}°\n")
+            info += (f"Эксцентриситет: {float(f'0.{TLE2[26:33]}'):.6f}\n")
+            info += (f"Средняя аномалия: {float(TLE2[43:51]):.2f}°\n")
+            info += (f"Период: {(1440 /float(TLE2[52:63])):.2f} мин\n\n")
+        except Exception as e:
+            info += str(e) + '\n'
+            info += "Не удалось получить параметры орбиты\n\n"
+        
+        # Текущее положение в MJ2000
+        try:
+            pos = sat.calculate_satellite_position(time)
+            info += "Положение в MJ2000 (км):\n"
+            info += f"X: {pos['earth_mj2000'][0]:.2f}\n"
+            info += f"Y: {pos['earth_mj2000'][1]:.2f}\n"
+            info += f"Z: {pos['earth_mj2000'][2]:.2f}\n\n"
+        except Exception as e:
+            info += "Не удалось получить положение в MJ2000\n\n"
+        
+        # Информация о видимости
         if azimuth is not None and elevation is not None:
-            info += "Текущее положение относительно станции:\n"
+            info += "Относительно станции:\n"
             info += f"Азимут: {azimuth:.1f}°\n"
             info += f"Угол места: {elevation:.1f}°\n"
             
             if elevation > 0:
-                info += "Статус: Виден\n"
+                info += "Статус: Над горизонтом\n"
             else:
                 info += "Статус: За горизонтом\n"
+            
+            # Рассчитываем следующее время контакта
+            try:
+                station_lat = float(self.lat_input.text())
+                station_lon = float(self.lon_input.text())
+                station_alt = float(self.alt_input.text()) 
+                
+                contacts = sat.get_contacts_times({
+                    'lat': station_lat,
+                    'lon': station_lon,
+                    'alt': station_alt
+                }, time, 5) 
+                
+                if contacts and len(contacts) > 0:
+                    next_contact = contacts[0]
+                    #print(next_contact)
+                    info += f"\nСледующий контакт:\n"
+                    info += f"Начало: {next_contact[0].strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    info += f"Макс. угол в {next_contact[2].strftime('%H:%M:%S')}\n"
+                    info += f"Конец: {next_contact[1].strftime('%H:%M:%S')}\n"
+                    info += f"Длительность: {(next_contact[1]-next_contact[0]).total_seconds()/60:.1f} мин\n"
+                else:
+                    info += "\nНет предстоящих контактов в ближайшие 2 дня\n"
+            except Exception as e:
+                info += "\nНе удалось рассчитать время контакта\n"
         
         self.info_text.setPlainText(info)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

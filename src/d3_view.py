@@ -42,16 +42,37 @@ class Earth3DViewer(QtWidgets.QWidget):
         
         self.satellite = pv.Sphere(radius=self.satellite_size)
         self.satellite_actor = self.plotter.add_mesh(self.satellite, color='yellow')
-        
+        self.add_star_background()
+
         # Начальная позиция камеры
         self.reset_camera()
     
+    def add_star_background(self):
+        """Добавляет звезды на фон (исправленная версия)"""
+        np.random.seed(42)
+        
+        # Создаем несколько групп звезд с разными размерами
+        for size in [1, 2, 3]:
+            # Создаем массив случайных точек для звезд
+            stars = np.random.uniform(-50000, 50000, size=(300, 3))
+            
+            # Добавляем звезды на сцену с фиксированным размером
+            self.plotter.add_mesh(
+                pv.PolyData(stars),
+                render_points_as_spheres=True,
+                point_size=size,  # Теперь передаем число, а не массив
+                color='white',
+                opacity=0.7,
+                name=f'stars_{size}'
+            )
+
     def reset_camera(self):
         """Устанавливаем камеру в стандартное положение"""
-        self.plotter.camera.position = (0, -20000, 20000)
+        self.plotter.reset_camera()
+        self.plotter.camera.position = (0, -15000, 15000)  # Ближе к Земле
         self.plotter.camera.focal_point = (0, 0, 0)
         self.plotter.camera.up = (0, 0, 1)
-        self.plotter.reset_camera()
+        self.plotter.camera.view_angle = 45  # Умеренное поле зрения
     
     def update_view(self, lons, lats, alts, name, station_lon=None, station_lat=None):
         """Обновляем 3D сцену с координатами в ECEF"""
@@ -86,22 +107,23 @@ class Earth3DViewer(QtWidgets.QWidget):
             self.satellite = pv.Sphere(radius=500, center=ecef_positions[0])
             self.satellite_actor = self.plotter.add_mesh(
                 self.satellite, color='yellow')
+            self.plotter.add_point_labels(
+                ecef_positions[0], 
+                [name], 
+                font_size=12,
+                text_color='yellow',
+                shadow=True,
+                font_family='arial',
+                name='satellite_label'
+            )
         
         # Добавляем наземную станцию
         if station_lon is not None and station_lat is not None:
             x, y, z = self.geodetic_to_ecef(station_lat, station_lon, 0)
             self.station = pv.Cone(center=(x, y, z), direction=(0, 0, 1), 
-                                  height=1000, radius=500, resolution=10)
+                                  height=500, radius=200, resolution=10)
             self.station_actor = self.plotter.add_mesh(
-                self.station, color='green')
-        
-        # Обновляем заголовок
-        if hasattr(self, 'title_actor'):
-            self.plotter.remove_actor(self.title_actor)
-        self.title_actor = self.plotter.add_text(
-            f"Орбита {name} (ECEF)",
-            font_size=18
-        )
+                self.station, color='red')
         
         # Принудительное обновление сцены
         self.plotter.update()
