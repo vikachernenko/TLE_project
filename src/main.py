@@ -206,7 +206,7 @@ class SatelliteTracker(QMainWindow):
     
     def update_satellite_info(self, sat, time, azimuth, elevation):
         """Обновляет информацию о спутнике"""
-        info = f"=== Спутник: {sat.name} ===\n"
+        info = f"=== Спутник: {sat.name} ===\n" 
         info += f"Время: {time.strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n"
         
         try:
@@ -256,14 +256,13 @@ class SatelliteTracker(QMainWindow):
                 
                 if contacts and len(contacts) > 0:
                     next_contact = contacts[0]
-                    #print(next_contact)
                     info += f"\nСледующий контакт:\n"
                     info += f"Начало: {next_contact[0].strftime('%Y-%m-%d %H:%M:%S')}\n"
                     info += f"Макс. угол в {next_contact[2].strftime('%H:%M:%S')}\n"
                     info += f"Конец: {next_contact[1].strftime('%H:%M:%S')}\n"
                     info += f"Длительность: {(next_contact[1]-next_contact[0]).total_seconds()/60:.1f} мин\n"
                 else:
-                    info += "\nНет предстоящих контактов в ближайшие 2 дня\n"
+                    info += "\nНет предстоящих контактов в ближайшие 5 часов\n"
             except Exception as e:
                 info += "\nНе удалось рассчитать время контакта\n"
         
