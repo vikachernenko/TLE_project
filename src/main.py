@@ -532,12 +532,13 @@ class SatelliteTracker(QMainWindow):
                     cursor.insertText(f"  Длительность: {(next_contact[1]-next_contact[0]).total_seconds()/60:.1f} мин\n", fmt_value)
                 else:
                     cursor.insertText("\n", fmt_normal)
-                    cursor.insertText(f"Нет контактов в ближайшие {5} часов\n\n", fmt_value)
+                    cursor.insertText(f"Нет контактов в ближайшие {5} часов\n", fmt_value)
             except Exception as e:
                 cursor.insertText("\n", fmt_normal)
-                cursor.insertText("Не удалось рассчитать время контакта\n\n", fmt_value)
+                cursor.insertText("Не удалось рассчитать время контакта\n", fmt_value)
 
         # Основные параметры
+        cursor.insertText("\n", fmt_normal)
         cursor.insertText("Основные параметры:\n", fmt_section)
         cursor.insertText(f"  Время: {time.strftime('%Y-%m-%d %H:%M:%S UTC')}\n", fmt_value)
         

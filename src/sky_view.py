@@ -17,7 +17,7 @@ class SkyViewWidget(QtWidgets.QWidget):
         main_layout.setSpacing(5)
         
         # График небесной сферы
-        self.figure = plt.figure(figsize=(6, 6), facecolor='black')
+        self.figure = plt.figure(figsize=(6, 6), facecolor='#1e1e1e')
         self.canvas = FigureCanvas(self.figure)
         
         # Панель информации о спутниках
@@ -42,7 +42,8 @@ class SkyViewWidget(QtWidgets.QWidget):
         self.scroll_area.setStyleSheet("""
             QScrollArea {
                 border: none;
-                background: #202020;
+                background: #1e1e1e;
+                border-radius: 5px;
             }
         """)
         
@@ -55,7 +56,7 @@ class SkyViewWidget(QtWidgets.QWidget):
         # Стилизация панели
         self.info_panel.setStyleSheet("""
             QWidget {
-                background: #202020;
+                background: #1e1e1e;
                 border-radius: 5px;
             }
         """)
@@ -102,28 +103,8 @@ class SkyViewWidget(QtWidgets.QWidget):
     def update_plot(self, satellites_data, passes_data=None):
         """Обновляет вид небесной сферы и панель информации"""
         self.figure.clear()
-        ax = self.figure.add_subplot(111, polar=True, facecolor='black')
-
-        # Настройка полярного графика
-        ax.set_theta_zero_location('N')
-        ax.set_theta_direction(-1)
-        ax.set_ylim(0, 90)
-        ax.set_xticks(np.radians(range(0, 360, 45)))
-        ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], 
-                          color='white', fontsize=8)
-
-        # Устанавливаем метки для оси Y
-        yticks = range(0, 91, 30)
-        ax.set_yticks(yticks)
-        ax.set_yticklabels([f'{90-x}°' for x in yticks], color='white', fontsize=8)
-
-        # Сетка и оформление
-        ax.grid(True, linestyle='--', alpha=0.3, color='white')
-
-        # Рисуем зенит и горизонт
-        ax.add_patch(Circle((0, 0), 90, transform=ax.transData._b,
-                     facecolor='#000033', alpha=0.5, edgecolor='none'))
-
+        ax = self.figure.add_subplot(111, polar=True, facecolor='#1e1e1e')
+        self.setup_view(ax)
         # Очищаем список спутников
         for i in reversed(range(self.sat_layout.count())): 
             self.sat_layout.itemAt(i).widget().setParent(None)
@@ -187,9 +168,33 @@ class SkyViewWidget(QtWidgets.QWidget):
         ax.set_title('Небесная сфера', color='white', pad=15, fontsize=10)
         self.canvas.draw()
 
+    def setup_view(self, ax):
+        # Настройка полярного графика
+        ax.set_theta_zero_location('N')
+        ax.set_theta_direction(-1)
+        ax.set_ylim(0, 90)
+        ax.set_xticks(np.radians(range(0, 360, 45)))
+        ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], 
+                          color='white', fontsize=8)
+
+        # Устанавливаем метки для оси Y
+        yticks = range(0, 91, 30)
+        ax.set_yticks(yticks)
+        ax.set_yticklabels([f'{90-x}°' for x in yticks], color='white', fontsize=8)
+
+        # Сетка и оформление
+        ax.grid(True, linestyle='--', alpha=0.3, color='white')
+
+        # Рисуем зенит и горизонт
+        ax.add_patch(Circle((0, 0), 90, transform=ax.transData._b,
+                     facecolor='#000033', alpha=0.5, edgecolor='none'))
+
+
     def clear_plot(self):
         """Очищает график и панель информации"""
         self.figure.clear()
         for i in reversed(range(self.sat_layout.count())): 
             self.sat_layout.itemAt(i).widget().setParent(None)
+        ax = self.figure.add_subplot(111, polar=True, facecolor='#1e1e1e')
+        self.setup_view(ax)
         self.canvas.draw()
