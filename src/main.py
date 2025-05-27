@@ -64,6 +64,11 @@ class SatelliteTracker(QMainWindow):
         self.search_results.itemDoubleClicked.connect(self.select_satellite)
         self.category_combo.currentTextChanged.connect(self.on_category_changed)
 
+        prog_group = QGroupBox("Глубина прогноза")
+        prog_layout = QFormLayout(prog_group)
+        self.prog_input = QLineEdit("120")
+        prog_layout.addRow("Интервал (мин):", self.prog_input)
+
         # Группа станции
         station_group = QGroupBox("Наземная станция")
         station_layout = QFormLayout(station_group)
@@ -85,6 +90,7 @@ class SatelliteTracker(QMainWindow):
 
         # Добавляем группы на левую панель
         left_layout.addWidget(sat_group)
+        left_layout.addWidget(prog_group)
         left_layout.addWidget(station_group)
         left_layout.addWidget(info_group, stretch=2)
         left_layout.addStretch()
@@ -179,9 +185,12 @@ class SatelliteTracker(QMainWindow):
             # Рассчитываем траекторию
             now = datetime.utcnow()
             lons, lats, alts = [], [], []
-
-            for i in range(24*6):  # 24 часа с шагом 10 минут
-                time = now + timedelta(minutes=i*10)  # Исправлено: добавлен множитель *10
+            try:
+                depth = int(self.prog_input.text())
+            except:
+                depth = 0
+            for i in range(depth+1):
+                time = now + timedelta(minutes=i)  # Исправлено: добавлен множитель *10
                 try:
                     pos = sat.calculate_satellite_position(time)
                     lons.append(pos['longitude'])
@@ -269,7 +278,7 @@ class SatelliteTracker(QMainWindow):
                 'lat': station_lat,
                 'lon': station_lon,
                 'alt': station_alt
-            }, now, 2)  # Рассматриваем 2 дня
+            }, now, 5)  # Рассматриваем 5 ч
 
             for contact in contacts:
                 pass_data = {'azimuths': [], 'elevations': []}
@@ -367,7 +376,7 @@ class SatelliteTracker(QMainWindow):
                     info += f"Конец: {next_contact[1].strftime('%H:%M:%S')}\n"
                     info += f"Длительность: {(next_contact[1]-next_contact[0]).total_seconds()/60:.1f} мин\n"
                 else:
-                    info += "\nНет предстоящих контактов в ближайшие 2 дня\n"
+                    info += "\nНет предстоящих контактов в ближайшие 5 часов\n"
             except Exception as e:
                 info += "\nНе удалось рассчитать время контакта\n"
 

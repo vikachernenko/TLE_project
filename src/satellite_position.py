@@ -65,7 +65,7 @@ class Satellite:
         :param horizon: Минимальный угол возвыщения (по умочанию 0.0)
         :return: Массив кортежей (время начала контакта, время конца контакта, время максимального возвышения) (datetime в UTC)
         """
-        print(ground_station['alt'])
+        #print(ground_station['alt'])
         return self.orb.get_next_passes(timestamp, duration, ground_station['lon'], ground_station['lat'], ground_station['alt'], horizon)
 
     def lla_to_ecef(self, lat, lon, alt):

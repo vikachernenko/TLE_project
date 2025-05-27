@@ -84,10 +84,7 @@ class Earth3DViewer(QtWidgets.QWidget):
             return
 
         # Удаляем старые акторы
-        if hasattr(self, 'orbit_actor'):
-            self.plotter.remove_actor(self.orbit_actor)
-        if hasattr(self, 'satellite_actor'):
-            self.plotter.remove_actor(self.satellite_actor)
+        
         if hasattr(self, 'station_actor'):
             self.plotter.remove_actor(self.station_actor)
 
@@ -97,20 +94,34 @@ class Earth3DViewer(QtWidgets.QWidget):
             x, y, z = self.geodetic_to_ecef(lat, lon, alt)
             ecef_positions.append((x, y, z))
 
-        # Обновляем орбиту
         if len(ecef_positions) > 1:
-            self.orbit = pv.Spline(ecef_positions)
-            self.orbit_actor = self.plotter.add_mesh(
-                self.orbit,
-                color='red',
-                line_width=3
-            )
+            new_orbit = pv.Spline(ecef_positions)
+            if hasattr(self, 'orbit'):
+                # Обновляем данные существующего меша вместо удаления/создания
+                self.orbit.copy_from(new_orbit)
+                self.plotter.update()
+            else:
+                self.orbit = new_orbit
+                self.orbit_actor = self.plotter.add_mesh(
+                    self.orbit,
+                    color='red',
+                    line_width=3
+                )
 
-        # Обновляем спутник
+    # Обновляем спутник
         if len(ecef_positions) > 0:
-            self.satellite = pv.Sphere(radius=500, center=ecef_positions[0])
-            self.satellite_actor = self.plotter.add_mesh(
-                self.satellite, color='yellow')
+            new_satellite = pv.Sphere(radius=500, center=ecef_positions[0])
+            if hasattr(self, 'satellite'):
+                self.satellite.copy_from(new_satellite)
+                self.plotter.update()
+            else:
+                self.satellite = new_satellite
+                self.satellite_actor = self.plotter.add_mesh(
+                    self.satellite, color='yellow')
+            
+            # Обновляем метку
+            if hasattr(self.plotter, 'satellite_label'):
+                self.plotter.remove_actor('satellite_label')
             self.plotter.add_point_labels(
                 ecef_positions[0],
                 [name],
@@ -121,16 +132,19 @@ class Earth3DViewer(QtWidgets.QWidget):
                 name='satellite_label'
             )
 
-        # Добавляем наземную станцию
+        # Обновляем наземную станцию
         if station_lon is not None and station_lat is not None:
             x, y, z = self.geodetic_to_ecef(station_lat, station_lon, 0)
-            self.station = pv.Cone(center=(x, y, z), direction=(0, 0, 1),
-                                   height=500, radius=200, resolution=10)
-            self.station_actor = self.plotter.add_mesh(
-                self.station, color='red')
-
-        # Принудительное обновление сцены
-        self.plotter.update()
+            if hasattr(self, 'station'):
+                new_station = pv.Cone(center=(x, y, z), direction=(0, 0, 1),
+                                height=500, radius=200, resolution=10)
+                self.station.copy_from(new_station)
+                self.plotter.update()
+            else:
+                self.station = pv.Cone(center=(x, y, z), direction=(0, 0, 1),
+                                    height=500, radius=200, resolution=10)
+                self.station_actor = self.plotter.add_mesh(
+                    self.station, color='red')
 
     def geodetic_to_ecef(self, lat, lon, alt):
         """Конвертация геодезических координат в ECEF (в км)"""
