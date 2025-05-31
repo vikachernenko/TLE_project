@@ -1,60 +1,58 @@
-
-QTextEdit, QListWidget, QLineEdit, QComboBox,QMainWindow {
-    background-color: #202020;
-    color: #CCCCCC;
-    border: 1px solid #333333;
+QWidget {
+    background-color: #1e1e1e;
+    color: #ffffff;
+}
+QTextEdit, QListWidget, QLineEdit, QComboBox {
+    background-color: #252525;
+    color: #ffffff;
+    border: 1px solid #444;
     border-radius: 4px;
+    padding: 5px;
     font-family: Arial;
     font-size: 8pt;
+    selection-background-color: #3a3a3a;
 }
-QWidget{
-    color: #CCCCCC;
-    font-family: Arial;
-    font-size: 9pt;
-}
-QGroupBox{
-    background-color: #202020;
-    color: #CCCCCC;
-    border: 1px solid #333333;
+QPushButton {
+    background-color: #353535;
+    color: #ffffff;
+    border: 1px solid #444;
     border-radius: 4px;
-    font-family: Arial;
-    font-size: 10pt;
-    padding: 15px;
+    padding: 5px;
 }
-
+QPushButton:hover {
+    background-color: #454545;
+}
+QPushButton:pressed {
+    background-color: #252525;
+}
+QGroupBox {
+    border: 1px solid #444;
+    border-radius: 4px;
+    margin-top: 10px;
+    padding-top: 15px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 3px;
+}
 QScrollBar:vertical {
-    background: #303030;
+    background: #252525;
     width: 10px;
 }
-
 QScrollBar::handle:vertical {
-    background: #505050;
+    background: #454545;
     min-height: 20px;
 }
 
-QListWidget::item {
-    padding: 5px;
-    border-bottom: 1px solid #333333;
+QToolTip { 
+    color: #ffffff; 
+    background-color: #2a82da; 
+    border: 1px solid white; 
 }
-
-QComboBox::drop-down {
+QScrollArea {
     border: none;
-}
-
-QPushButton {
-    background-color: #303030;
-    color: #CCCCCC;
+    background: #1e1e1e;
+    border-radius: 5px;
     border: 1px solid #333333;
-    border-radius: 4px;
-    font-family: Arial;
-    font-size: 10pt;
-    padding: 5px;
-}
-
-QPushButton:hover {
-    background-color: #404040;
-}
-
-QPushButton:pressed {
-    background-color: #505050;
 }

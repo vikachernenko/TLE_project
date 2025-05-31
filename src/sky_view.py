@@ -37,30 +37,16 @@ class SkyViewWidget(QtWidgets.QWidget):
         self.sat_layout = QtWidgets.QVBoxLayout(self.sat_container)
         self.sat_layout.setAlignment(QtCore.Qt.AlignTop)
         self.scroll_area.setWidget(self.sat_container)
-        
-        # Стилизация
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background: #1e1e1e;
-                border-radius: 5px;
-                border: 1px solid #333333;
-            }
-        """)
+
+        with open('styles/styles.css', 'r') as f:
+            self.setStyleSheet(f.read())
         
         info_layout.addWidget(self.scroll_area)
         
         # Добавляем виджеты в основной layout
         main_layout.addWidget(self.canvas, 70)  # 70% ширины
         main_layout.addWidget(self.info_panel, 30)  # 30% ширины
-        
-        # Стилизация панели
-        self.info_panel.setStyleSheet("""
-            QWidget {
-                background: #1e1e1e;
-                border-radius: 5px;
-            }
-        """)
+
 
     def _create_satellite_info_widget(self, name, azimuth, elevation, color):
         """Создает виджет с информацией о спутнике"""

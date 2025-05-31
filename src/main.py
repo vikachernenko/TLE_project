@@ -101,25 +101,6 @@ class SatelliteTracker(QMainWindow):
 
         self.info_text = QTextEdit()
         self.info_text.setReadOnly(True)
-        self.info_text.setStyleSheet("""
-            QTextEdit {
-                background-color: #202020;
-                color: #CCCCCC;
-                border: 1px solid #333333;
-                border-radius: 4px;
-                font-family: Arial;
-                font-size: 10pt;
-                padding: 5px;
-            }
-            QScrollBar:vertical {
-                background: #303030;
-                width: 10px;
-            }
-            QScrollBar::handle:vertical {
-                background: #505050;
-                min-height: 20px;
-            }
-        """)
         self.info_text.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         info_layout.addWidget(self.info_text)
 
@@ -252,10 +233,7 @@ class SatelliteTracker(QMainWindow):
         """Обработка изменения категории спутников"""
         if category == "Все спутники":
             return
-        
         try:
-            # Здесь можно добавить фильтрацию по категории
-            # Пока просто показываем сообщение
             QMessageBox.information(self, "Категория", f"Выбрана категория: {category}")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка при смене категории: {str(e)}")
@@ -589,62 +567,8 @@ class SatelliteTracker(QMainWindow):
         dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
         dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
         dark_palette.setColor(QPalette.HighlightedText, Qt.black)
-        
-        # Отключаем анимации и эффекты
-        self.setStyleSheet("""
-            QToolTip { 
-                color: #ffffff; 
-                background-color: #2a82da; 
-                border: 1px solid white; 
-            }
-        """)
 
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #1e1e1e;
-                color: #ffffff;
-            }
-            QTextEdit, QListWidget, QLineEdit, QComboBox {
-                background-color: #252525;
-                color: #ffffff;
-                border: 1px solid #444;
-                border-radius: 4px;
-                padding: 5px;
-                selection-background-color: #3a3a3a;
-            }
-            QPushButton {
-                background-color: #353535;
-                color: #ffffff;
-                border: 1px solid #444;
-                border-radius: 4px;
-                padding: 5px;
-            }
-            QPushButton:hover {
-                background-color: #454545;
-            }
-            QPushButton:pressed {
-                background-color: #252525;
-            }
-            QGroupBox {
-                border: 1px solid #444;
-                border-radius: 4px;
-                margin-top: 10px;
-                padding-top: 15px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 3px;
-            }
-            QScrollBar:vertical {
-                background: #252525;
-                width: 10px;
-            }
-            QScrollBar::handle:vertical {
-                background: #454545;
-                min-height: 20px;
-            }
-        """)
+        self.setStyleSheet(load_styles())
         
         self.setPalette(dark_palette)
 
