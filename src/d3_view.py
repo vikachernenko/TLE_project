@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple
 class Earth3DViewer(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         # Инициализация 3D сцены
         self.plotter = BackgroundPlotter(show=False)
         self.plotter.set_background('black')
@@ -37,11 +37,11 @@ class Earth3DViewer(QtWidgets.QWidget):
         self.earth = examples.planets.load_earth(radius=6378.1)
         try:
             texture = examples.load_globe_texture()
-            self.plotter.add_mesh(self.earth, texture=texture, 
-                                 smooth_shading=True, name='earth')
+            self.plotter.add_mesh(self.earth, texture=texture,
+                                  smooth_shading=True, name='earth')
         except:
-            self.plotter.add_mesh(self.earth, color='blue', 
-                                 opacity=0.8, name='earth')
+            self.plotter.add_mesh(self.earth, color='blue',
+                                  opacity=0.8, name='earth')
         self.earth.rotate_z(-180, inplace=True)
 
     def _init_stars(self):
@@ -71,9 +71,9 @@ class Earth3DViewer(QtWidgets.QWidget):
         self.plotter.camera.up = (0, 0, 1)
         self.plotter.camera.view_angle = 45
 
-    def update_view(self, satellites_data: List[dict], 
-                   station_lon: Optional[float] = None, 
-                   station_lat: Optional[float] = None):
+    def update_view(self, satellites_data: List[dict],
+                    station_lon: Optional[float] = None,
+                    station_lat: Optional[float] = None):
         """Обновление 3D сцены"""
         try:
             # Обновляем наземную станцию
@@ -96,19 +96,19 @@ class Earth3DViewer(QtWidgets.QWidget):
             return
 
         x, y, z = self.geodetic_to_ecef(lat, lon, 0)
-        
+
         if self.station is None:
             # Создаем новую станцию
             self.station = pv.Cone(center=(x, y, z), direction=(0, 0, 1),
-                                 height=500, radius=200)
+                                   height=500, radius=200)
             self.station_actor = self.plotter.add_mesh(
                 self.station, color='red', name='station')
         else:
             # Обновляем существующую станцию
             self.station = pv.Cone(center=(x, y, z), direction=(0, 0, 1),
-                                    height=500, radius=200, resolution=10)
+                                   height=500, radius=200, resolution=10)
             self.station_actor = self.plotter.add_mesh(
-                    self.station, color='red')
+                self.station, color='red')
 
     def _remove_old_satellites(self, satellites_data: List[dict]):
         """Удаление спутников, которых больше нет в данных"""
@@ -129,8 +129,8 @@ class Earth3DViewer(QtWidgets.QWidget):
         color_rgb = (color.red()/255, color.green()/255, color.blue()/255)
 
         # Конвертируем координаты
-        ecef_positions = [self.geodetic_to_ecef(lat, lon, alt) 
-                         for lon, lat, alt in zip(lons, lats, alts)]
+        ecef_positions = [self.geodetic_to_ecef(lat, lon, alt)
+                          for lon, lat, alt in zip(lons, lats, alts)]
 
         if name not in self.satellites:
             # Создаем новый спутник
@@ -139,28 +139,28 @@ class Earth3DViewer(QtWidgets.QWidget):
             # Обновляем существующий спутник
             self._update_existing_satellite(name, ecef_positions, color_rgb)
 
-    def _create_satellite(self, name: str, 
-                         positions: List[Tuple[float, float, float]], 
-                         color: Tuple[float, float, float]):
+    def _create_satellite(self, name: str,
+                          positions: List[Tuple[float, float, float]],
+                          color: Tuple[float, float, float]):
         """Создание нового спутника"""
         if not positions:
             return
 
         # Создаем орбиту
         orbit = pv.Spline(positions) if len(positions) > 1 else None
-        
+
         # Создаем спутник
-        satellite = pv.Sphere(radius=self.satellite_size, 
-                             center=positions[0])
+        satellite = pv.Sphere(radius=self.satellite_size,
+                              center=positions[0])
 
         # Добавляем на сцену
         orbit_actor = self.plotter.add_mesh(
-            orbit, color=color, line_width=self.orbit_width, 
+            orbit, color=color, line_width=self.orbit_width,
             name=f'orbit_{name}') if orbit else None
-        
+
         sat_actor = self.plotter.add_mesh(
             satellite, color=color, name=f'sat_{name}')
-        
+
         label = self.plotter.add_point_labels(
             [positions[0]], [name],
             font_size=10, text_color=color,
@@ -177,9 +177,9 @@ class Earth3DViewer(QtWidgets.QWidget):
             'color': color
         }
 
-    def _update_existing_satellite(self, name: str, 
-                                  positions: List[Tuple[float, float, float]], 
-                                  color: Tuple[float, float, float]):
+    def _update_existing_satellite(self, name: str,
+                                   positions: List[Tuple[float, float, float]],
+                                   color: Tuple[float, float, float]):
         """Обновление существующего спутника"""
         if not positions or name not in self.satellites:
             return
@@ -193,9 +193,9 @@ class Earth3DViewer(QtWidgets.QWidget):
             sat['orbit'].copy_from(new_orbit)
 
         # Обновляем позицию спутника
-        satellite = pv.Sphere(radius=self.satellite_size, 
-                             center=current_pos)
-        sat['satellite'].copy_from (satellite)
+        satellite = pv.Sphere(radius=self.satellite_size,
+                              center=current_pos)
+        sat['satellite'].copy_from(satellite)
 
         # Обновляем метку (удаляем старую и создаем новую)
         self.plotter.remove_actor(f'label_{name}')
@@ -211,7 +211,7 @@ class Earth3DViewer(QtWidgets.QWidget):
             return
 
         sat = self.satellites[name]
-        
+
         # Удаляем все компоненты
         if sat['orbit_actor']:
             self.plotter.remove_actor(f'orbit_{name}')
@@ -219,7 +219,7 @@ class Earth3DViewer(QtWidgets.QWidget):
             self.plotter.remove_actor(f'sat_{name}')
         if sat['label']:
             self.plotter.remove_actor(f'label_{name}')
-        
+
         del self.satellites[name]
 
     def clear_view(self):

@@ -10,26 +10,27 @@ from scipy.interpolate import make_smoothing_spline
 class SkyViewWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         # Основной layout
         main_layout = QtWidgets.QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(5)
-        
+
         # График небесной сферы
         self.figure = plt.figure(figsize=(6, 6), facecolor='black')
         self.canvas = FigureCanvas(self.figure)
-        
+
         # Панель информации о спутниках
         self.info_panel = QtWidgets.QWidget()
         info_layout = QtWidgets.QVBoxLayout(self.info_panel)
         info_layout.setContentsMargins(5, 5, 5, 5)
-        
+
         # Заголовок панели
         title = QtWidgets.QLabel("Текущие положения:")
-        title.setStyleSheet("font-size: 14px; font-weight: bold; color: white;")
+        title.setStyleSheet(
+            "font-size: 14px; font-weight: bold; color: white;")
         info_layout.addWidget(title)
-        
+
         # Прокручиваемый список спутников
         self.scroll_area = QtWidgets.QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -37,7 +38,7 @@ class SkyViewWidget(QtWidgets.QWidget):
         self.sat_layout = QtWidgets.QVBoxLayout(self.sat_container)
         self.sat_layout.setAlignment(QtCore.Qt.AlignTop)
         self.scroll_area.setWidget(self.sat_container)
-        
+
         # Стилизация
         self.scroll_area.setStyleSheet("""
             QScrollArea {
@@ -45,13 +46,13 @@ class SkyViewWidget(QtWidgets.QWidget):
                 background: #202020;
             }
         """)
-        
+
         info_layout.addWidget(self.scroll_area)
-        
+
         # Добавляем виджеты в основной layout
         main_layout.addWidget(self.canvas, 70)  # 70% ширины
         main_layout.addWidget(self.info_panel, 30)  # 30% ширины
-        
+
         # Стилизация панели
         self.info_panel.setStyleSheet("""
             QWidget {
@@ -65,7 +66,7 @@ class SkyViewWidget(QtWidgets.QWidget):
         widget = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(widget)
         layout.setContentsMargins(5, 5, 5, 5)
-        
+
         # Цветной индикатор
         color_indicator = QtWidgets.QFrame()
         color_indicator.setFixedSize(15, 15)
@@ -73,30 +74,31 @@ class SkyViewWidget(QtWidgets.QWidget):
             background: rgb({color.red()}, {color.green()}, {color.blue()});
             border-radius: 7px;
         """)
-        
+
         # Название спутника
         name_label = QtWidgets.QLabel(name)
         name_label.setStyleSheet("font-weight: bold; color: white;")
-        
+
         # Положение
-        pos_label = QtWidgets.QLabel(f"Азимут: {azimuth:.1f}°\nВысота: {elevation:.1f}°")
+        pos_label = QtWidgets.QLabel(
+            f"Азимут: {azimuth:.1f}°\nВысота: {elevation:.1f}°")
         pos_label.setStyleSheet("color: #CCCCCC;")
-        
+
         # Горизонтальный layout для цветного индикатора и названия
         top_layout = QtWidgets.QHBoxLayout()
         top_layout.addWidget(color_indicator)
         top_layout.addWidget(name_label)
         top_layout.addStretch()
-        
+
         layout.addLayout(top_layout)
         layout.addWidget(pos_label)
-        
+
         # Разделитель
         separator = QtWidgets.QFrame()
         separator.setFrameShape(QtWidgets.QFrame.HLine)
         separator.setStyleSheet("color: #333333;")
         layout.addWidget(separator)
-        
+
         return widget
 
     def update_plot(self, satellites_data, passes_data=None):
@@ -109,13 +111,14 @@ class SkyViewWidget(QtWidgets.QWidget):
         ax.set_theta_direction(-1)
         ax.set_ylim(0, 90)
         ax.set_xticks(np.radians(range(0, 360, 45)))
-        ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], 
-                          color='white', fontsize=8)
+        ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
+                           color='white', fontsize=8)
 
         # Устанавливаем метки для оси Y
         yticks = range(0, 91, 30)
         ax.set_yticks(yticks)
-        ax.set_yticklabels([f'{90-x}°' for x in yticks], color='white', fontsize=8)
+        ax.set_yticklabels([f'{90-x}°' for x in yticks],
+                           color='white', fontsize=8)
 
         # Сетка и оформление
         ax.grid(True, linestyle='--', alpha=0.3, color='white')
@@ -125,7 +128,7 @@ class SkyViewWidget(QtWidgets.QWidget):
                      facecolor='#000033', alpha=0.5, edgecolor='none'))
 
         # Очищаем список спутников
-        for i in reversed(range(self.sat_layout.count())): 
+        for i in reversed(range(self.sat_layout.count())):
             self.sat_layout.itemAt(i).widget().setParent(None)
 
         # Отображаем пролеты спутников (без легенды)
@@ -145,20 +148,26 @@ class SkyViewWidget(QtWidgets.QWidget):
                     # Разбиваем на сегменты при разрывах
                     diffs = np.diff(az)
                     split_indices = np.where(diffs > np.pi)[0] + 1
-                    segments = np.split(np.column_stack((az, el)), split_indices) if len(split_indices) > 0 else [np.column_stack((az, el))]
+                    segments = np.split(np.column_stack((az, el)), split_indices) if len(
+                        split_indices) > 0 else [np.column_stack((az, el))]
 
                     # Конвертируем цвет
-                    mpl_color = (color.red()/255, color.green()/255, color.blue()/255)
+                    mpl_color = (color.red()/255, color.green() /
+                                 255, color.blue()/255)
 
                     # Рисуем сегменты
                     for segment in segments:
                         if len(segment) > 3:
                             try:
-                                spline = make_smoothing_spline(segment[:,0], segment[:,1])
-                                az_new = np.linspace(segment[:,0].min(), segment[:,0].max(), 100)
-                                ax.plot(az_new, spline(az_new), color=mpl_color, linewidth=2, alpha=0.7)
+                                spline = make_smoothing_spline(
+                                    segment[:, 0], segment[:, 1])
+                                az_new = np.linspace(
+                                    segment[:, 0].min(), segment[:, 0].max(), 100)
+                                ax.plot(az_new, spline(az_new),
+                                        color=mpl_color, linewidth=2, alpha=0.7)
                             except:
-                                ax.plot(segment[:,0], segment[:,1], color=mpl_color, linewidth=2, alpha=0.7)
+                                ax.plot(
+                                    segment[:, 0], segment[:, 1], color=mpl_color, linewidth=2, alpha=0.7)
 
         # Обрабатываем текущие положения спутников
         for sat_data in satellites_data:
@@ -171,16 +180,18 @@ class SkyViewWidget(QtWidgets.QWidget):
                 # Отображение на графике
                 rad_az = math.radians(azimuth % 360)
                 clipped_elev = max(0, min(90, 90 - elevation))
-                mpl_color = (color.red()/255, color.green()/255, color.blue()/255)
-                
-                ax.plot(rad_az, clipped_elev, 'o', 
-                       color=mpl_color, 
-                       markersize=8, 
-                       markeredgecolor='white', 
-                       markeredgewidth=1)
+                mpl_color = (color.red()/255, color.green() /
+                             255, color.blue()/255)
+
+                ax.plot(rad_az, clipped_elev, 'o',
+                        color=mpl_color,
+                        markersize=8,
+                        markeredgecolor='white',
+                        markeredgewidth=1)
 
                 # Добавляем информацию в панель
-                sat_widget = self._create_satellite_info_widget(name, azimuth, elevation, color)
+                sat_widget = self._create_satellite_info_widget(
+                    name, azimuth, elevation, color)
                 self.sat_layout.addWidget(sat_widget)
 
         # Настройка заголовка
@@ -190,6 +201,6 @@ class SkyViewWidget(QtWidgets.QWidget):
     def clear_plot(self):
         """Очищает график и панель информации"""
         self.figure.clear()
-        for i in reversed(range(self.sat_layout.count())): 
+        for i in reversed(range(self.sat_layout.count())):
             self.sat_layout.itemAt(i).widget().setParent(None)
         self.canvas.draw()

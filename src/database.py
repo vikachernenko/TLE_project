@@ -197,32 +197,47 @@ class Database:
             {
                 'name': 'Навигационные',
                 'description': 'Спутники для навигации и позиционирования (GPS, ГЛОНАСС, Galileo)',
-                'priority': 1
+                'priority': 1,
+                'min_altitude': 19100,  # км
+                'max_altitude': 23222,  # км
+                'typical_period': 12,   # часов
+                'is_active': True
             },
             {
                 'name': 'Связь',
                 'description': 'Телекоммуникационные спутники',
-                'priority': 2
+                'priority': 2,
+                'min_altitude': 35786,  # км (геостационарная орбита)
+                'max_altitude': 35786,  # км
+                'typical_period': 24,   # часов
+                'is_active': True
             },
             {
                 'name': 'Научные',
                 'description': 'Спутники для научных исследований',
-                'priority': 3
+                'priority': 3,
+                'min_altitude': 400,    # км
+                'max_altitude': 1000,   # км
+                'typical_period': 1.5,  # часов
+                'is_active': True
             },
             {
                 'name': 'Метеорологические',
                 'description': 'Спутники для наблюдения за погодой и климатом',
-                'priority': 4
-            },
-            {
-                'name': 'Военные',
-                'description': 'Спутники военного назначения',
-                'priority': 5
+                'priority': 4,
+                'min_altitude': 700,    # км
+                'max_altitude': 850,    # км
+                'typical_period': 1.7,  # часов
+                'is_active': True
             },
             {
                 'name': 'Наблюдение Земли',
                 'description': 'Спутники для дистанционного зондирования Земли',
-                'priority': 6
+                'priority': 5,
+                'min_altitude': 500,    # км
+                'max_altitude': 800,    # км
+                'typical_period': 1.6,  # часов
+                'is_active': True
             }
         ]
 
@@ -234,28 +249,40 @@ class Database:
                 'min_altitude': 160,
                 'max_altitude': 2000,
                 'typical_inclination': 51.6,
-                'description': 'Низкая околоземная орбита'
+                'description': 'Низкая околоземная орбита',
+                'period_range': (1.5, 2.0),    # часы
+                'typical_applications': ['Наблюдение Земли', 'Научные исследования'],
+                'radiation_level': 'Низкий'
             },
             {
                 'name': 'MEO',
                 'min_altitude': 2000,
                 'max_altitude': 35786,
                 'typical_inclination': 55.0,
-                'description': 'Средняя околоземная орбита'
+                'description': 'Средняя околоземная орбита',
+                'period_range': (2.0, 24.0),   # часы
+                'typical_applications': ['Навигация'],
+                'radiation_level': 'Средний'
             },
             {
                 'name': 'GEO',
                 'min_altitude': 35786,
                 'max_altitude': 35786,
                 'typical_inclination': 0.0,
-                'description': 'Геостационарная орбита'
+                'description': 'Геостационарная орбита',
+                'period_range': (24.0, 24.0),  # часы
+                'typical_applications': ['Связь', 'Метеорология'],
+                'radiation_level': 'Высокий'
             },
             {
                 'name': 'HEO',
                 'min_altitude': 500,
                 'max_altitude': 50000,
                 'typical_inclination': 63.4,
-                'description': 'Высокоэллиптическая орбита'
+                'description': 'Высокоэллиптическая орбита',
+                'period_range': (8.0, 24.0),   # часы
+                'typical_applications': ['Связь', 'Наблюдение'],
+                'radiation_level': 'Переменный'
             }
         ]
 
@@ -647,7 +674,7 @@ class ReferenceManager(QMainWindow):
                     INSERT OR REPLACE INTO satellite_categories 
                     (name, description, priority, is_active, last_update)
                     VALUES (?, ?, ?, 1, datetime('now'))
-                    ''', (category['name'], category['description'], category['priority']))
+                    ''', (category['name'], category['description'], category['priority'], 1, datetime.now()))
                 
                 conn.commit()
                 self._load_categories()  # Перезагружаем данные
