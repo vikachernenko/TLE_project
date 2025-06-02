@@ -16,7 +16,11 @@ from d3_view import Earth3DViewer
 from sky_view import SkyViewWidget
 import warnings
 warnings.filterwarnings("ignore", message="pkg_resources is deprecated")
-
+warnings.filterwarnings(
+    "ignore",
+    message="no explicit representation of timezones available for np.datetime64",
+    module="pyorbital"
+)
 
 def load_styles():
     with open('styles/styles.css', 'r') as f:
@@ -204,7 +208,7 @@ class SatelliteTracker(QMainWindow):
 
     def generate_color(self):
         """Генерирует случайный цвет для нового спутника"""
-        return QColor(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        return QColor(random.randint(30, 255), random.randint(30, 255), random.randint(30, 255))
 
     def search_satellite(self):
         """Поиск спутника по имени и отображение результатов"""
