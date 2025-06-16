@@ -12,33 +12,16 @@
 
 1. Скачайте проект и распакуйте в любую папку.
 2. Откройте командную строку и перейдите в папку проекта:
-   cd путь*к*папке_проекта
+   `cd ~/...`
+3. Создайте виртуальное окружение
+   conda create -n satellite_tracker `python=3.12.2 -y --solver=classic`
 
-Например: `cd C:\Users\YourName\satellite_tracker` 3. Запустите установку:
-python install.py
-Скрипт автоматически:
+Вместо python=3.12.2 пропишите вашу версию питона, ее можно узнать с помощью команды `python --version`
 
-- Проверит наличие Anaconda.
-- Создаст виртуальную среду `satellite_tracker` с Python 3.8.
-- Установит библиотеки: `pandas`, `numpy`, `matplotlib`, `visual`, `pyorbital`, `requests`, `cartopy`
+4. Активируем виртуальное окружение
+   `conda activate satellite_tracker`
 
-4. Дождитесь сообщения: `Установка завершена успешно!`
+5. `pip install -r requirements.txt`
 
-## Проверка установки
-
-1. Активируйте виртуальную среду:
-   conda activate satellite_tracker
-2. Проверьте наличие библиотек:
-   python -c "import pandas, numpy, matplotlib, visual, pyorbital, cartopy, requests; print('Все библиотеки установлены.')"
-   Если ошибок нет, установка успешна.
-
-## Устранение неполадок
-
-- **Anaconda не найдена**:
-- Убедитесь, что Anaconda установлена и добавлена в PATH.
-- Проверьте: `conda --version`.
-- **Ошибки при установке библиотек**:
-- Проверьте интернет-соединение.
-- Повторите: `python install.py`.
-- **Проблемы с библиотекой `visual`**:
-- Замените `visual` на `vpython` в `install.py`, если не устанавливается.
+6. Запускаем приложение
+   `python main.py`
