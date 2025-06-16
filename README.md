@@ -14,7 +14,7 @@
 2. Откройте командную строку и перейдите в папку проекта:
    `cd ~/...`
 3. Создайте виртуальное окружение
-   conda create -n satellite_tracker `python=3.12.2 -y --solver=classic`
+   `conda create -n satellite_tracker python=3.12.2 -y --solver=classic`
 
 Вместо python=3.12.2 пропишите вашу версию питона, ее можно узнать с помощью команды `python --version`
 
